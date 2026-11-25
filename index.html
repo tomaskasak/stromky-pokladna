@@ -123,6 +123,7 @@ input.num-in{width:80px;text-align:right}
 .big-line b{font-family:var(--f-display);font-size:22px}
 .grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid3>:first-child{grid-column:1/-1}
+.act-btns{display:flex;gap:14px;justify-content:flex-end}
 .type-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .type-head .left{font-weight:700;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .type-head .left.low{color:var(--red)}
@@ -226,6 +227,10 @@ input.num-in{width:80px;text-align:right}
       <div class="label">QR platby</div>
       <div class="field"><label for="account">Číslo účtu</label><input type="text" id="account" maxlength="40" autocomplete="off" placeholder="např. 123456789/0100 nebo IBAN"></div>
       <p class="note" id="account-note">Na tento účet budou chodit QR platby.</p>
+      <div class="label">Údaje na účtenku</div>
+      <div class="field"><label for="iss-name">Jméno a příjmení</label><input type="text" id="iss-name" maxlength="80" autocomplete="name"></div>
+      <div class="field"><label for="iss-address">Adresa sídla (podle živnostenského rejstříku)</label><input type="text" id="iss-address" maxlength="160" autocomplete="street-address"></div>
+      <div class="field"><label for="iss-ico">IČO</label><input type="text" id="iss-ico" maxlength="12" inputmode="numeric"></div>
       <button class="btn primary" id="save-prices" type="button">Uložit ceník</button>
     </div>
     <div class="card">
@@ -261,6 +266,18 @@ input.num-in{width:80px;text-align:right}
     </div>
   </div>
   <button class="btn ghost" type="button" id="sheet-cancel">Zrušit</button>
+</div>
+<div id="rc-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="rc-title" hidden>
+  <h2 id="rc-title">Účtenka</h2>
+  <p id="rc-what" class="note"></p>
+  <div id="rc-warn" class="banner" hidden>Nejdřív doplň v Ceníku jméno, adresu a IČO, aby byly na účtence.</div>
+  <div class="field"><label for="rc-contact">E-mail nebo telefon zákazníka</label><input type="text" id="rc-contact" inputmode="email" autocomplete="off" placeholder="jan@email.cz nebo 777 123 456"></div>
+  <button class="btn primary" type="button" id="rc-send" disabled>Odeslat</button>
+  <div class="grid2">
+    <button class="btn ghost" type="button" id="rc-open">Zobrazit doklad</button>
+    <button class="btn ghost" type="button" id="rc-copy">Kopírovat text</button>
+  </div>
+  <button class="btn ghost" type="button" id="rc-cancel">Zavřít</button>
 </div>
 <div id="toast" class="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-undo">Vrátit</button></div>
 

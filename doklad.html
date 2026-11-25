@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Prodejní doklad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#EEF1EC;--paper:#FFFFFF;--fg:#17211B;--muted:#5B6B60;--line:#D5DDD6;--pine:#1A3527}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;padding:24px 16px}
+.paper{max-width:560px;margin:0 auto;background:var(--paper);border-radius:12px;padding:32px 28px;box-shadow:0 2px 14px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:22px}
+h1{margin:0;font-size:20px;letter-spacing:.02em}
+.no{color:var(--muted);font-variant-numeric:tabular-nums}
+.label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.block p{margin:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 0;border-bottom:1px solid var(--line)}
+th:last-child,td:last-child{text-align:right}
+th:not(:first-child),td:not(:first-child){white-space:nowrap;padding-left:14px}
+th{font-size:12px;color:var(--muted);font-weight:600}
+.total{display:flex;justify-content:space-between;font-size:20px;font-weight:700;border-top:2px solid var(--fg);padding-top:10px}
+.foot{color:var(--muted);font-size:13px}
+.actions{max-width:560px;margin:16px auto 0;display:flex;justify-content:center}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 20px;background:var(--pine);color:#fff;cursor:pointer}
+.msg{max-width:560px;margin:40px auto;text-align:center;color:var(--muted)}
+@media print{body{background:#fff;padding:0}.paper{box-shadow:none;max-width:none;padding:0}.actions{display:none}}
+</style>
+</head>
+<body>
+<p class="msg" id="msg">Načítám doklad…</p>
+<article class="paper" id="paper" hidden>
+  <div>
+    <h1>Prodejní doklad</h1>
+    <div class="no" id="no"></div>
+  </div>
+  <div class="block">
+    <div class="label">Prodávající</div>
+    <p id="iss-name"></p>
+    <p id="iss-address"></p>
+    <p id="iss-ico"></p>
+  </div>
+  <div class="block">
+    <div class="label">Datum prodeje</div>
+    <p id="date"></p>
+  </div>
+  <table>
+    <thead><tr><th>Položka</th><th>Množství</th><th>Cena</th></tr></thead>
+    <tbody><tr><td id="item"></td><td>1 ks</td><td id="price"></td></tr></tbody>
+  </table>
+  <div class="total"><span>Celkem</span><span id="total"></span></div>
+  <div class="foot">
+    <p id="pay"></p>
+    <p>Nejsem plátce DPH.</p>
+  </div>
+</article>
+<div class="actions" id="actions" hidden><button type="button" id="print">Vytisknout</button></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(async function(){
+  var $=function(id){return document.getElementById(id)};
+  var TYPES={smrk:'Smrk stříbrný',jedle:'Jedle kavkazská'};
+  var SIZES={s:'do 150 cm',m:'150–200 cm',l:'200–230 cm',xl:'nad 230 cm'};
+  var PAY={cash:'hotově',card:'platební kartou',qr:'bankovním převodem (QR platba)'};
+  function kc(n){return (Math.round(n)||0).toLocaleString('cs-CZ').replace(/ /g,' ')+' Kč'}
+  function fail(t){$('msg').textContent=t}
+  var id=new URLSearchParams(location.search).get('id');
+  if(!id||!/^[0-9a-f-]{36}$/i.test(id)){fail('Doklad nebyl nalezen. Zkontroluj odkaz.');return}
+  if(!window.supabase){fail('Doklad se nepodařilo načíst. Zkontroluj připojení k internetu.');return}
+  var sb=window.supabase.createClient('https://ajbxynzxdyqbfjhpdyot.supabase.co','sb_publishable_1cEe3dARe90wosDXiZmbLw_l1j1OI8H');
+  var r=await Promise.all([
+    sb.from('stromky_sales').select('tree_type,size,price,pay,sold_at,receipt_no,is_void').eq('id',id).maybeSingle(),
+    sb.from('stromky_config').select('issuer').eq('id','main').maybeSingle()]);
+  if(r[0].error||r[1].error){fail('Doklad se nepodařilo načíst. Zkus to prosím znovu.');return}
+  var s=r[0].data;if(!s||!s.receipt_no){fail('Doklad nebyl nalezen.');return}
+  if(s.is_void){fail('Tento prodej byl stornován.');return}
+  var is=(r[1].data&&r[1].data.issuer)||{};var d=new Date(s.sold_at);
+  var no=d.getFullYear()+'-'+String(s.receipt_no).padStart(4,'0');
+  document.title='Prodejní doklad č. '+no;
+  $('no').textContent='č. '+no;
+  $('iss-name').textContent=is.name||'';$('iss-address').textContent=is.address||'';$('iss-ico').textContent=is.ico?'IČO: '+is.ico:'';
+  $('date').textContent=d.toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  $('item').textContent='Vánoční stromek – '+(TYPES[s.tree_type]||'')+', '+(SIZES[s.size]||'');
+  $('price').textContent=kc(s.price);$('total').textContent=kc(s.price);
+  $('pay').textContent='Zaplaceno '+(PAY[s.pay]||'')+'.';
+  $('msg').hidden=true;$('paper').hidden=false;$('actions').hidden=false;
+  $('print').addEventListener('click',function(){window.print()});
+})();
+</script>
+</body>
+</html>

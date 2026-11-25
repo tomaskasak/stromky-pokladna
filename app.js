@@ -65,7 +65,8 @@
       el('span',{cls:'amt',text:kc(s.price)})]));
     var b=el('button',{type:'button',cls:'linkbtn'+(s.void?' ok':''),text:s.void?'Obnovit':'Stornovat'});
     b.addEventListener('click',function(){setVoid('stromky_sales',s.id,!s.void)});
-    f.appendChild(el('div',{cls:'row actions'},[el('span'),b]));return f}
+    var rb=null;if(!s.void){rb=el('button',{type:'button',cls:'linkbtn ok',text:s.receipt?'Doklad č. '+receiptNo(s):'Účtenka'});rb.addEventListener('click',function(){openReceipt(s)})}
+    f.appendChild(el('div',{cls:'row actions'},[el('span'),el('span',{cls:'act-btns'},[rb,s.receipt?null:b])]));return f}
 
   function renderRecent(){var box=$('recent');box.textContent='';var list=sales.slice(0,6);
     if(!list.length){box.appendChild(el('p',{cls:'empty',text:'Zatím žádný prodej. Ťukni na stromek nahoře a vyber platbu.'}));return}
@@ -136,7 +137,8 @@
     function setIf(id,v){if(document.activeElement!==$(id))$(id).value=v==null?'':v}
     setIf('buy-smrk',cfg.buy&&cfg.buy.smrk);setIf('buy-jedle',cfg.buy&&cfg.buy.jedle);
     setIf('com-smrk',cfg.commission&&cfg.commission.smrk);setIf('com-jedle',cfg.commission&&cfg.commission.jedle);
-    setIf('account',cfg.account||'');accountNote();}
+    setIf('account',cfg.account||'');accountNote();
+    var is=cfg.issuer||{};setIf('iss-name',is.name);setIf('iss-address',is.address);setIf('iss-ico',is.ico);}
   function accountNote(){var v=$('account').value.trim();var n=$('account-note');
     if(!v){n.textContent='Zadej číslo účtu, jinak QR platba nepůjde.';n.className='note';return}
     var ib=toIban(v);n.textContent=ib?'QR platby půjdou na účet '+ib.replace(/(.{4})/g,'$1 ').trim()+'.':'Číslo účtu nevypadá správně. Zadej ho ve tvaru 123456789/0100.';n.className=ib?'note':'note diff-bad';}
@@ -144,11 +146,11 @@
   function renderAll(){renderHeader();renderTiles();renderRecent();renderPrehled();renderSklad();renderCenik();}
 
   /* ---------- data ---------- */
-  function mapSale(x){return {id:x.id,type:x.tree_type,size:x.size,price:Number(x.price)||0,pay:PAY[x.pay]?x.pay:'cash',at:x.sold_at,day:String(x.sale_day||''),by:x.seller||'',void:!!x.is_void}}
+  function mapSale(x){return {id:x.id,type:x.tree_type,size:x.size,price:Number(x.price)||0,pay:PAY[x.pay]?x.pay:'cash',at:x.sold_at,day:String(x.sale_day||''),by:x.seller||'',void:!!x.is_void,receipt:x.receipt_no||null,receiptAt:x.receipt_at||null}}
   function setOffline(on){$('offline').hidden=!on}
   async function load(){if(!sb)return;
     var res=await Promise.all([
-      sb.from('stromky_config').select('prices,buy,stock,account,commission').eq('id','main').maybeSingle(),
+      sb.from('stromky_config').select('prices,buy,stock,account,commission,issuer').eq('id','main').maybeSingle(),
       sb.from('stromky_sales').select('*').order('sold_at',{ascending:false}).limit(5000),
       sb.from('stromky_odbery').select('*').order('odber_day',{ascending:false}).order('created_at',{ascending:false}).limit(500),
       sb.from('stromky_days').select('*').limit(200)]);
@@ -191,7 +193,7 @@
     blur();toast(r.error?'Sklad se neuložil.':'Sklad uložen',true);scheduleLoad()}
   async function savePrices(){if(!sb)return;var pr={};TYPES.forEach(function(t){pr[t.k]={};SIZES.forEach(function(s){var v=parseInt($('pr-'+t.k+'-'+s.k).value,10);if(!isNaN(v))pr[t.k][s.k]=v})});
     var acc=$('account').value.trim();if(acc&&!toIban(acc)){toast('Číslo účtu nevypadá správně.',true);return}
-    var r=await sb.from('stromky_config').update({prices:pr,buy:{smrk:num('buy-smrk'),jedle:num('buy-jedle')},commission:{smrk:num('com-smrk'),jedle:num('com-jedle')},account:acc,updated_at:new Date().toISOString()}).eq('id','main');
+    var r=await sb.from('stromky_config').update({prices:pr,buy:{smrk:num('buy-smrk'),jedle:num('buy-jedle')},commission:{smrk:num('com-smrk'),jedle:num('com-jedle')},account:acc,issuer:{name:$('iss-name').value.trim().slice(0,80),address:$('iss-address').value.trim().slice(0,160),ico:$('iss-ico').value.replace(/\s+/g,'').slice(0,12)},updated_at:new Date().toISOString()}).eq('id','main');
     blur();toast(r.error?'Ceník se neuložil.':'Ceník uložen',true);scheduleLoad()}
   async function saveDay(){if(!sb)return;var day=$('day-pick').value||dayKey(new Date());
     var row={day:day,start_cash:num('start-cash'),counted_cash:$('counted-cash').value===''?null:num('counted-cash'),updated_at:new Date().toISOString()};
@@ -212,7 +214,43 @@
     odbery.slice().reverse().forEach(function(o){rows.push([o.day.split('-').reverse().join('.'),o.smrk,o.jedle,o.smrk*(Number(com.smrk)||0)+o.jedle*(Number(com.jedle)||0),o.note,o.void?'ano':''])});
     csvDownload('odbery-druhy-prodejce.csv',rows)}
 
+  /* ---------- účtenky ---------- */
+  var rcSale=null;
+  function receiptNo(s){var y=new Date(s.at).getFullYear();return y+'-'+String(s.receipt).padStart(4,'0')}
+  function receiptUrl(s){return location.origin+location.pathname.replace(/[^\/]*$/,'')+'doklad.html?id='+encodeURIComponent(s.id)}
+  function receiptText(s){var is=(cfg&&cfg.issuer)||{};var d=new Date(s.at);
+    return ['PRODEJNÍ DOKLAD č. '+receiptNo(s),'',
+      'Prodávající: '+(is.name||''),is.address||'','IČO: '+(is.ico||''),'',
+      'Datum prodeje: '+d.toLocaleDateString('cs-CZ')+' '+pad(d.getHours())+':'+pad(d.getMinutes()),
+      'Položka: Vánoční stromek – '+tName(s.type)+', '+sName(s.size)+', 1 ks',
+      'Cena: '+kc(s.price),'Celkem k úhradě: '+kc(s.price)+' (zaplaceno '+({cash:'hotově',card:'kartou',qr:'převodem přes QR'})[s.pay]+')','',
+      'Nejsem plátce DPH.','','Doklad k tisku: '+receiptUrl(s)].join('\n')}
+  function issuerOk(){var is=(cfg&&cfg.issuer)||{};return !!(is.name&&is.address&&is.ico)}
+  function openReceipt(s){rcSale=s;$('rc-title').textContent=s.receipt?'Doklad č. '+receiptNo(s):'Účtenka';
+    $('rc-what').textContent=tName(s.type)+' · '+sName(s.size)+' · '+kc(s.price);
+    $('rc-warn').hidden=issuerOk();$('rc-contact').value='';rcHint();
+    $('rc-sheet').hidden=false;$('sheet-back').hidden=false;$('rc-contact').focus();}
+  function closeReceipt(){rcSale=null;$('rc-sheet').hidden=true;$('sheet-back').hidden=true}
+  function contactKind(v){v=v.trim();if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))return 'email';if(/^\+?[\d\s]{9,16}$/.test(v))return 'sms';return null}
+  function rcHint(){var k=contactKind($('rc-contact').value);var b=$('rc-send');b.disabled=!k||!issuerOk();
+    b.textContent=k==='email'?'Poslat e-mailem':k==='sms'?'Poslat SMS':'Odeslat';}
+  async function issue(s){if(s.receipt)return s;var r=await sb.rpc('stromky_issue_receipt',{p_sale:s.id});
+    if(r.error){toast('Číslo dokladu se nepodařilo přidělit. Zkontroluj internet.',true);return null}
+    var c=Object.assign({},s,{receipt:r.data});scheduleLoad();return c}
+  async function sendReceipt(){if(!rcSale||!sb)return;var v=$('rc-contact').value.trim();var k=contactKind(v);if(!k)return;
+    var s=await issue(rcSale);if(!s)return;var url;
+    if(k==='email'){url='mailto:'+encodeURIComponent(v)+'?subject='+encodeURIComponent('Účtenka za vánoční stromek č. '+receiptNo(s))+'&body='+encodeURIComponent(receiptText(s))}
+    else{var is=(cfg&&cfg.issuer)||{};var phone=v.replace(/\s+/g,'');if(!phone.startsWith('+')&&phone.length===9)phone='+420'+phone;
+      url='sms:'+phone+'?body='+encodeURIComponent('Účtenka za vánoční stromek č. '+receiptNo(s)+', '+kc(s.price)+' ('+(is.name||'')+'). Doklad k tisku: '+receiptUrl(s))}
+    closeReceipt();window.location.href=url;}
+  async function copyReceipt(){if(!rcSale||!sb)return;var s=await issue(rcSale);if(!s)return;
+    try{await navigator.clipboard.writeText(receiptText(s));toast('Účtenka zkopírována',true)}catch(e){toast('Kopírování se nepovedlo.',true)}}
+  async function openPrintable(){if(!rcSale||!sb)return;var s=await issue(rcSale);if(!s)return;window.open(receiptUrl(s),'_blank')}
+
   /* ---------- události ---------- */
+  $('rc-contact').addEventListener('input',rcHint);
+  $('rc-send').addEventListener('click',sendReceipt);$('rc-copy').addEventListener('click',copyReceipt);$('rc-open').addEventListener('click',openPrintable);
+  $('rc-cancel').addEventListener('click',closeReceipt);
   $('pay-cash').addEventListener('click',function(){sell('cash')});
   $('pay-card').addEventListener('click',function(){sell('card')});
   $('pay-qr').addEventListener('click',showQr);
@@ -220,8 +258,8 @@
   $('qr-back').addEventListener('click',function(){$('qr-img').textContent='';$('sheet-main').hidden=false;$('sheet-qr').hidden=true;$('sheet-cancel').hidden=false});
   document.querySelectorAll('[data-disc]').forEach(function(b){b.addEventListener('click',function(){if(!pending)return;var d=+b.dataset.disc;
     $('sheet-price').value=d?Math.max(0,sheetPrice()-d):pending.full})});
-  $('sheet-cancel').addEventListener('click',closeSheet);$('sheet-back').addEventListener('click',closeSheet);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('sheet').hidden)closeSheet()});
+  $('sheet-cancel').addEventListener('click',closeSheet);$('sheet-back').addEventListener('click',function(){closeSheet();closeReceipt()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(!$('sheet').hidden)closeSheet();if(!$('rc-sheet').hidden)closeReceipt()}});
   $('toast-undo').addEventListener('click',undo);
   $('day-pick').addEventListener('change',function(){$('start-cash').value='';$('counted-cash').value='';renderPrehled()});
   ['start-cash','counted-cash'].forEach(function(id){$(id).addEventListener('input',function(){var day=$('day-pick').value;renderUzaverka(day,sum(live().filter(function(s){return s.day===day})))})});

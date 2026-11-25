@@ -123,6 +123,9 @@ input.num-in{width:80px;text-align:right}
 .big-line b{font-family:var(--f-display);font-size:22px}
 .grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid3>:first-child{grid-column:1/-1}
+.type-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.type-head .left{font-weight:700;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.type-head .left.low{color:var(--red)}
 .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:380px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
@@ -162,7 +165,7 @@ input.num-in{width:80px;text-align:right}
       <div class="tbl-wrap"><table id="day-mix"></table></div>
     </div>
     <div class="card">
-      <div class="label">Uzávěrka dne</div>
+      <div class="label">Uzávěrka dne (nepovinné)</div>
       <div class="grid2">
         <div class="field"><label for="start-cash">Hotovost v kase ráno (Kč)</label><input type="number" inputmode="numeric" id="start-cash" min="0" placeholder="0"></div>
         <div class="field"><label for="counted-cash">Napočítáno večer (Kč)</label><input type="number" inputmode="numeric" id="counted-cash" min="0" placeholder="nepovinné"></div>
@@ -185,7 +188,7 @@ input.num-in{width:80px;text-align:right}
 
   <section id="v-sklad" class="group" data-v hidden>
     <div class="card">
-      <p class="note">Zadej, kolik kusů jsi nakoupil. Zbývající kusy se počítají samy z prodejů.</p>
+      <p class="note">Zadej, kolik kusů smrků a jedlí máš celkem. Při dalším závozu číslo jen navyš. Výšky řešit nemusíš, prodané kusy se odečítají samy.</p>
       <div class="tbl-wrap"><table id="stock"></table></div>
       <button class="btn primary" id="save-stock" type="button">Uložit sklad</button>
     </div>

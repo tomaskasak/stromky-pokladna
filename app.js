@@ -20,6 +20,8 @@
   function sum(list){var r={n:0,cash:0,card:0,qr:0,total:0};list.forEach(function(s){r.n++;r.total+=s.price;r[s.pay]+=s.price});return r}
   function price(t,s){return cfg&&cfg.prices&&cfg.prices[t]?cfg.prices[t][s]:null}
   function soldCount(t,s){return live().filter(function(x){return x.type===t&&x.size===s}).length}
+  function typeSold(t){return live().filter(function(x){return x.type===t}).length}
+  function stockOf(t){var v=cfg&&cfg.stock?cfg.stock[t]:0;if(v&&typeof v==='object'){var n=0;for(var k in v)n+=Number(v[k])||0;return n}return Number(v)||0}
   function num(id){var v=parseInt($(id).value,10);return isNaN(v)?0:Math.max(0,v)}
   function focusedIn(box){return document.activeElement&&box.contains(document.activeElement)}
 
@@ -47,10 +49,11 @@
 
   function renderTiles(){var box=$('sale-groups');box.textContent='';
     if(!cfg||!cfg.prices){box.appendChild(el('p',{cls:'empty',text:'Načítám ceník…'}));return}
-    TYPES.forEach(function(t){var g=el('div',{cls:'group'},[el('h2',{text:t.n})]);var tiles=el('div',{cls:'tiles'});
-      SIZES.forEach(function(s){var p=price(t.k,s.k);if(p==null)return;var bought=cfg.stock&&cfg.stock[t.k]?cfg.stock[t.k][s.k]:null;
-        var info,low=false;if(bought>0){var left=bought-soldCount(t.k,s.k);info='zbývá '+left+' ks';low=left<=3}else info='prodáno '+soldCount(t.k,s.k)+' ks';
-        var b=el('button',{type:'button',cls:'tile'+(s.k==='m'?' hot':'')},[el('span',{cls:'h',text:s.n}),el('span',{cls:'p',text:kc(p)}),el('span',{cls:'s'+(low?' low':''),text:info})]);
+    TYPES.forEach(function(t){var bought=stockOf(t.k);var head=el('div',{cls:'type-head'},[el('h2',{text:t.n})]);
+      if(bought>0){var left=bought-typeSold(t.k);head.appendChild(el('span',{cls:'left'+(left<=5?' low':''),text:'zbývá '+left+' ks'}))}
+      var g=el('div',{cls:'group'},[head]);var tiles=el('div',{cls:'tiles'});
+      SIZES.forEach(function(s){var p=price(t.k,s.k);if(p==null)return;
+        var b=el('button',{type:'button',cls:'tile'+(s.k==='m'?' hot':'')},[el('span',{cls:'h',text:s.n}),el('span',{cls:'p',text:kc(p)}),el('span',{cls:'s',text:'prodáno '+soldCount(t.k,s.k)+' ks'})]);
         b.addEventListener('click',function(){openSheet(t.k,s.k)});tiles.appendChild(b)});
       g.appendChild(tiles);box.appendChild(g)});}
 
@@ -101,13 +104,13 @@
 
   function renderSklad(){var t=$('stock');if(!focusedIn(t)){t.textContent='';
     t.appendChild(el('thead',null,[el('tr',null,['','Nakoupeno','Prodáno','Zbývá'].map(function(h){return el('th',{text:h})}))]));
-    var b=el('tbody');
-    TYPES.forEach(function(ty){b.appendChild(el('tr',null,[el('td',{colspan:'4',cls:'sub-head',text:ty.n})]));
-      SIZES.forEach(function(s){var bought=cfg&&cfg.stock&&cfg.stock[ty.k]?(Number(cfg.stock[ty.k][s.k])||0):0;var sold=soldCount(ty.k,s.k);
-        var inp=el('input',{type:'number',inputmode:'numeric',min:'0',id:'st-'+ty.k+'-'+s.k,cls:'num-in','aria-label':ty.n+' '+s.n+' nakoupeno'});inp.value=bought||'';
-        var tdIn=el('td');tdIn.appendChild(inp);
-        b.appendChild(el('tr',null,[el('td',{text:s.n}),tdIn,el('td',{text:String(sold)}),el('td',{text:bought?String(bought-sold):'–'})]))})});
-    t.appendChild(b);}
+    var b=el('tbody');var tb=0,ts=0;
+    TYPES.forEach(function(ty){var bought=stockOf(ty.k);var sold=typeSold(ty.k);tb+=bought;ts+=sold;
+      var inp=el('input',{type:'number',inputmode:'numeric',min:'0',id:'st-'+ty.k,cls:'num-in','aria-label':ty.n+' nakoupeno kusů'});inp.value=bought||'';
+      var tdIn=el('td');tdIn.appendChild(inp);
+      b.appendChild(el('tr',null,[el('td',{text:ty.n}),tdIn,el('td',{text:String(sold)}),el('td',{text:bought?String(bought-sold):'–'})]))});
+    t.appendChild(b);
+    t.appendChild(el('tfoot',null,[el('tr',null,[el('td',{text:'Celkem'}),el('td',{text:String(tb)}),el('td',{text:String(ts)}),el('td',{text:tb?String(tb-ts):'–'})])]));}
     renderOdbery();}
 
   function renderOdbery(){var box=$('odbery');box.textContent='';var com=(cfg&&cfg.commission)||{smrk:0,jedle:0};
@@ -183,7 +186,7 @@
 
   /* ---------- ukládání ---------- */
   function blur(){if(document.activeElement)document.activeElement.blur()}
-  async function saveStock(){if(!sb)return;var st={};TYPES.forEach(function(t){st[t.k]={};SIZES.forEach(function(s){st[t.k][s.k]=num('st-'+t.k+'-'+s.k)})});
+  async function saveStock(){if(!sb)return;var st={};TYPES.forEach(function(t){st[t.k]=num('st-'+t.k)});
     var r=await sb.from('stromky_config').update({stock:st,updated_at:new Date().toISOString()}).eq('id','main');
     blur();toast(r.error?'Sklad se neuložil.':'Sklad uložen',true);scheduleLoad()}
   async function savePrices(){if(!sb)return;var pr={};TYPES.forEach(function(t){pr[t.k]={};SIZES.forEach(function(s){var v=parseInt($('pr-'+t.k+'-'+s.k).value,10);if(!isNaN(v))pr[t.k][s.k]=v})});

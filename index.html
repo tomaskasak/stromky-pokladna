@@ -123,6 +123,8 @@ input.num-in{width:80px;text-align:right}
 .big-line b{font-family:var(--f-display);font-size:22px}
 .grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid3>:first-child{grid-column:1/-1}
+.linkbtn.armed{background:var(--red-soft);border-radius:8px;padding:8px 10px}
+.btn.danger{color:var(--red);border-color:var(--red-soft)}
 .act-btns{display:flex;gap:14px;justify-content:flex-end}
 .type-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .type-head .left{font-weight:700;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -277,6 +279,7 @@ input.num-in{width:80px;text-align:right}
     <button class="btn ghost" type="button" id="rc-open">Zobrazit doklad</button>
     <button class="btn ghost" type="button" id="rc-copy">Kopírovat text</button>
   </div>
+  <button class="btn ghost danger" type="button" id="rc-void" hidden>Zrušit doklad</button>
   <button class="btn ghost" type="button" id="rc-cancel">Zavřít</button>
 </div>
 <div id="toast" class="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-undo">Vrátit</button></div>

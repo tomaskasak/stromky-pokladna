@@ -90,7 +90,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--fg)}
 .btn:disabled{opacity:.5;cursor:default}
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:13px;color:var(--muted);font-weight:600}
-input[type=number],input[type=text],select{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);width:100%;min-width:0}
+input[type=number],input[type=text],input[type=date],select{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);width:100%;min-width:0}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .empty{color:var(--muted);text-align:center;padding:18px 8px}
 .note{font-size:13px;color:var(--muted)}
@@ -107,6 +107,24 @@ input[type=number],input[type=text],select{font:inherit;font-size:16px;padding:1
 .row.actions{grid-template-columns:1fr auto;padding-top:0;border-top:0}
 td.sub-head{font-weight:700}
 input.num-in{width:80px;text-align:right}
+.disc{display:flex;gap:8px;flex-wrap:wrap}
+.disc button{appearance:none;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-weight:600;border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer}
+.sheet .pay{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sheet .pay .btn{font-size:16px;padding:10px 6px}
+.btn.qr{background:var(--surface);color:var(--fg);border:2px solid var(--pine)}
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.qr-img{background:#FFFFFF;padding:12px;border-radius:12px;line-height:0}
+.qr-img img,.qr-img canvas{display:block;width:240px;height:240px;max-width:70vw;max-height:70vw}
+.qr-amt{font-family:var(--f-display);font-weight:700;font-size:30px;font-variant-numeric:tabular-nums}
+.chip.qr{background:var(--surface);color:var(--fg);border:1.5px solid var(--pine)}
+.diff-ok{color:var(--ok);font-weight:700}
+.diff-bad{color:var(--red);font-weight:700}
+.big-line{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.big-line b{font-family:var(--f-display);font-size:22px}
+.grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3>:first-child{grid-column:1/-1}
+.stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:380px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -116,7 +134,7 @@ input.num-in{width:80px;text-align:right}
     <div class="top-row"><span class="brand">Stromky · Castle</span><span class="date" id="today-label"></span></div>
     <div class="take">
       <div><div class="sub">Dnešní tržba</div><div class="big" id="today-total">0 Kč</div></div>
-      <div class="sub" id="today-split">0 ks · hotově 0 Kč · kartou 0 Kč</div>
+      <div class="sub" id="today-split">0 ks</div>
     </div>
   </header>
 
@@ -144,6 +162,16 @@ input.num-in{width:80px;text-align:right}
       <div class="tbl-wrap"><table id="day-mix"></table></div>
     </div>
     <div class="card">
+      <div class="label">Uzávěrka dne</div>
+      <div class="grid2">
+        <div class="field"><label for="start-cash">Hotovost v kase ráno (Kč)</label><input type="number" inputmode="numeric" id="start-cash" min="0" placeholder="0"></div>
+        <div class="field"><label for="counted-cash">Napočítáno večer (Kč)</label><input type="number" inputmode="numeric" id="counted-cash" min="0" placeholder="nepovinné"></div>
+      </div>
+      <div class="big-line"><span>Má být v kase</span><b id="expected-cash">0 Kč</b></div>
+      <div class="big-line"><span>Rozdíl</span><span id="cash-diff" class="note">zadej napočítanou hotovost</span></div>
+      <button class="btn primary" id="save-day" type="button">Uložit uzávěrku</button>
+    </div>
+    <div class="card">
       <div class="label">Prodeje za den</div>
       <div class="list" id="day-list"></div>
     </div>
@@ -161,6 +189,21 @@ input.num-in{width:80px;text-align:right}
       <div class="tbl-wrap"><table id="stock"></table></div>
       <button class="btn primary" id="save-stock" type="button">Uložit sklad</button>
     </div>
+    <div class="card">
+      <h2>Druhý prodejce</h2>
+      <p class="note">Zapiš, kolik stromků přes tebe odebral. Provize se spočítá podle sazeb v Ceníku. Do tvého skladu se tyto kusy nepočítají.</p>
+      <div class="grid3">
+        <div class="field"><label for="od-day">Datum</label><input type="date" id="od-day"></div>
+        <div class="field"><label for="od-smrk">Smrků</label><input type="number" inputmode="numeric" id="od-smrk" min="0" placeholder="0"></div>
+        <div class="field"><label for="od-jedle">Jedlí</label><input type="number" inputmode="numeric" id="od-jedle" min="0" placeholder="0"></div>
+      </div>
+      <div class="field"><label for="od-note">Poznámka</label><input type="text" id="od-note" maxlength="200" placeholder="nepovinné"></div>
+      <button class="btn primary" id="save-odber" type="button">Zapsat odběr</button>
+      <div class="list" id="odbery"></div>
+      <div class="big-line"><span id="odbery-sum">0 smrků · 0 jedlí</span><b id="odbery-prov">0 Kč</b></div>
+      <p class="note">Tuhle částku mu vyfakturuješ jako provizi za zprostředkování.</p>
+      <button class="btn ghost" id="export-odbery" type="button">Stáhnout odběry (CSV)</button>
+    </div>
   </section>
 
   <section id="v-cenik" class="group" data-v hidden>
@@ -172,6 +215,14 @@ input.num-in{width:80px;text-align:right}
         <div class="field"><label for="buy-smrk">Smrk</label><input type="number" inputmode="numeric" id="buy-smrk" min="0"></div>
         <div class="field"><label for="buy-jedle">Jedle</label><input type="number" inputmode="numeric" id="buy-jedle" min="0"></div>
       </div>
+      <div class="label">Provize od druhého prodejce za kus</div>
+      <div class="grid2">
+        <div class="field"><label for="com-smrk">Smrk</label><input type="number" inputmode="numeric" id="com-smrk" min="0"></div>
+        <div class="field"><label for="com-jedle">Jedle</label><input type="number" inputmode="numeric" id="com-jedle" min="0"></div>
+      </div>
+      <div class="label">QR platby</div>
+      <div class="field"><label for="account">Číslo účtu</label><input type="text" id="account" maxlength="40" autocomplete="off" placeholder="např. 123456789/0100 nebo IBAN"></div>
+      <p class="note" id="account-note">Na tento účet budou chodit QR platby.</p>
       <button class="btn primary" id="save-prices" type="button">Uložit ceník</button>
     </div>
     <div class="card">
@@ -184,15 +235,33 @@ input.num-in{width:80px;text-align:right}
 <div id="sheet-back" class="sheet-back" hidden></div>
 <div id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
   <h2 id="sheet-title"></h2>
-  <div class="field"><label for="sheet-price">Cena (Kč)</label><input type="number" inputmode="numeric" id="sheet-price" min="0"></div>
-  <div class="pay">
-    <button class="btn gold" type="button" id="pay-cash">Hotově</button>
-    <button class="btn primary" type="button" id="pay-card">Kartou / QR</button>
+  <div id="sheet-main" class="group">
+    <div class="field"><label for="sheet-price">Cena (Kč)</label><input type="number" inputmode="numeric" id="sheet-price" min="0"></div>
+    <div class="disc" role="group" aria-label="Sleva">
+      <button type="button" data-disc="50">−50 Kč</button>
+      <button type="button" data-disc="100">−100 Kč</button>
+      <button type="button" data-disc="0">Plná cena</button>
+    </div>
+    <div class="pay">
+      <button class="btn gold" type="button" id="pay-cash">Hotově</button>
+      <button class="btn primary" type="button" id="pay-card">Kartou</button>
+      <button class="btn qr" type="button" id="pay-qr">QR kód</button>
+    </div>
+  </div>
+  <div id="sheet-qr" class="qr-box" hidden>
+    <div class="qr-img" id="qr-img" role="img" aria-label="QR kód pro platbu"></div>
+    <div class="qr-amt" id="qr-amt"></div>
+    <p class="note" id="qr-info">Zákazník naskenuje kód v bankovní aplikaci. Až uvidíš potvrzení platby, ťukni na Zaplaceno.</p>
+    <div class="grid2" style="width:100%">
+      <button class="btn ghost" type="button" id="qr-back">Zpět</button>
+      <button class="btn primary" type="button" id="qr-paid">Zaplaceno</button>
+    </div>
   </div>
   <button class="btn ghost" type="button" id="sheet-cancel">Zrušit</button>
 </div>
 <div id="toast" class="toast" role="status" hidden><span id="toast-text"></span><button type="button" id="toast-undo">Vrátit</button></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="app.js"></script>
 </body>

@@ -5,7 +5,7 @@
   var TYPES=[{k:'smrk',n:'Smrk stříbrný'},{k:'jedle',n:'Jedle kavkazská'}];
   var SIZES=[{k:'s',n:'do 150 cm'},{k:'m',n:'150–200 cm'},{k:'l',n:'200–230 cm'},{k:'xl',n:'nad 230 cm'}];
   var PAY={cash:'hotově',card:'karta',qr:'QR'};
-  var sb=null, cfg=null, sales=[], odbery=[], days={}, lastAdded=null, toastTimer=null, pending=null, busy=false;
+  var sb=null, cfg=null, sales=[], odbery=[], days={}, rez=[], started=false, lastAdded=null, toastTimer=null, pending=null, busy=false;
   var $=function(id){return document.getElementById(id)};
   function el(tag,attrs,kids){var e=document.createElement(tag);if(attrs)for(var a in attrs){if(a==='text')e.textContent=attrs[a];else if(a==='cls')e.className=attrs[a];else e.setAttribute(a,attrs[a]);}
     (kids||[]).forEach(function(k){if(k!=null)e.appendChild(typeof k==='string'?document.createTextNode(k):k)});return e;}
@@ -21,6 +21,8 @@
   function price(t,s){return cfg&&cfg.prices&&cfg.prices[t]?cfg.prices[t][s]:null}
   function soldCount(t,s){return live().filter(function(x){return x.type===t&&x.size===s}).length}
   function typeSold(t){return live().filter(function(x){return x.type===t}).length}
+  function todayKey(){return dayKey(new Date())}
+  function heldCount(t){var td=todayKey();return rez.filter(function(r){return r.status==='active'&&r.type===t&&r.day>=td}).length}
   function stockOf(t){var v=cfg&&cfg.stock?cfg.stock[t]:0;if(v&&typeof v==='object'){var n=0;for(var k in v)n+=Number(v[k])||0;return n}return Number(v)||0}
   function num(id){var v=parseInt($(id).value,10);return isNaN(v)?0:Math.max(0,v)}
   function focusedIn(box){return document.activeElement&&box.contains(document.activeElement)}
@@ -36,7 +38,7 @@
   function spd(iban,amount,msg){return 'SPD*1.0*ACC:'+iban+'*AM:'+amount.toFixed(2)+'*CC:CZK*MSG:'+spdText(msg)}
 
   /* ---------- views ---------- */
-  var VIEWS=['prodej','prehled','sklad','cenik'];
+  var VIEWS=['prodej','rezervace','prehled','sklad','cenik'];
   function route(){var v=(location.hash||'').slice(1);if(VIEWS.indexOf(v)<0)v='prodej';
     VIEWS.forEach(function(n){$('v-'+n).hidden=n!==v});
     document.querySelectorAll('nav.tabs a').forEach(function(a){if(a.dataset.view===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});}
@@ -50,7 +52,7 @@
   function renderTiles(){var box=$('sale-groups');box.textContent='';
     if(!cfg||!cfg.prices){box.appendChild(el('p',{cls:'empty',text:'Načítám ceník…'}));return}
     TYPES.forEach(function(t){var bought=stockOf(t.k);var head=el('div',{cls:'type-head'},[el('h2',{text:t.n})]);
-      if(bought>0){var left=bought-typeSold(t.k);head.appendChild(el('span',{cls:'left'+(left<=5?' low':''),text:'zbývá '+left+' ks'}))}
+      if(bought>0){var held=heldCount(t.k);var left=bought-typeSold(t.k)-held;head.appendChild(el('span',{cls:'left'+(left<=5?' low':''),text:'volných '+left+' ks'+(held?' · '+held+' rezerv.':'')}))}
       var g=el('div',{cls:'group'},[head]);var tiles=el('div',{cls:'tiles'});
       SIZES.forEach(function(s){var p=price(t.k,s.k);if(p==null)return;
         var b=el('button',{type:'button',cls:'tile'+(s.k==='m'?' hot':'')},[el('span',{cls:'h',text:s.n}),el('span',{cls:'p',text:kc(p)}),el('span',{cls:'s',text:'prodáno '+soldCount(t.k,s.k)+' ks'})]);
@@ -107,14 +109,14 @@
     diff.textContent=dv===0?'sedí na korunu':(dv>0?'+':'−')+kc(Math.abs(dv))+(dv>0?' navíc':' chybí');}
 
   function renderSklad(){var t=$('stock');if(!focusedIn(t)){t.textContent='';
-    t.appendChild(el('thead',null,[el('tr',null,['','Nakoupeno','Prodáno','Zbývá'].map(function(h){return el('th',{text:h})}))]));
-    var b=el('tbody');var tb=0,ts=0;
-    TYPES.forEach(function(ty){var bought=stockOf(ty.k);var sold=typeSold(ty.k);tb+=bought;ts+=sold;
+    t.appendChild(el('thead',null,[el('tr',null,['','Nakoupeno','Prodáno','Rezerv.','Volných'].map(function(h){return el('th',{text:h})}))]));
+    var b=el('tbody');var tb=0,ts=0,th=0;
+    TYPES.forEach(function(ty){var bought=stockOf(ty.k);var sold=typeSold(ty.k);var held=heldCount(ty.k);tb+=bought;ts+=sold;th+=held;
       var inp=el('input',{type:'number',inputmode:'numeric',min:'0',id:'st-'+ty.k,cls:'num-in','aria-label':ty.n+' nakoupeno kusů'});inp.value=bought||'';
       var tdIn=el('td');tdIn.appendChild(inp);
-      b.appendChild(el('tr',null,[el('td',{text:ty.n}),tdIn,el('td',{text:String(sold)}),el('td',{text:bought?String(bought-sold):'–'})]))});
+      b.appendChild(el('tr',null,[el('td',{text:ty.n}),tdIn,el('td',{text:String(sold)}),el('td',{text:String(held)}),el('td',{text:bought?String(bought-sold-held):'–'})]))});
     t.appendChild(b);
-    t.appendChild(el('tfoot',null,[el('tr',null,[el('td',{text:'Celkem'}),el('td',{text:String(tb)}),el('td',{text:String(ts)}),el('td',{text:tb?String(tb-ts):'–'})])]));}
+    t.appendChild(el('tfoot',null,[el('tr',null,[el('td',{text:'Celkem'}),el('td',{text:String(tb)}),el('td',{text:String(ts)}),el('td',{text:String(th)}),el('td',{text:tb?String(tb-ts-th):'–'})])]));}
     renderOdbery();}
 
   function renderOdbery(){var box=$('odbery');box.textContent='';var com=(cfg&&cfg.commission)||{smrk:0,jedle:0};
@@ -146,7 +148,46 @@
     if(!v){n.textContent='Zadej číslo účtu, jinak QR platba nepůjde.';n.className='note';return}
     var ib=toIban(v);n.textContent=ib?'QR platby půjdou na účet '+ib.replace(/(.{4})/g,'$1 ').trim()+'.':'Číslo účtu nevypadá správně. Zadej ho ve tvaru 123456789/0100.';n.className=ib?'note':'note diff-bad';}
 
-  function renderAll(){renderHeader();renderTiles();renderRecent();renderPrehled();renderSklad();renderCenik();}
+  function renderAll(){renderHeader();renderTiles();renderRecent();renderRez();renderPrehled();renderSklad();renderCenik();}
+
+  /* ---------- rezervace ---------- */
+  function rezRow(r){var f=document.createDocumentFragment();var done=r.status==='done',cancelled=r.status==='cancelled';
+    f.appendChild(el('div',{cls:'row rez'+(done||cancelled?' void':'')},[
+      el('span',{cls:'t code',text:r.code}),
+      el('span',{cls:'what'},[r.name,el('small',{text:tName(r.type)+' · '+sName(r.size)+(r.note?' · „'+r.note+'“':'')})]),
+      el('span',{cls:'chip'+(done?' card':cancelled?' void':''),text:done?'vydáno':cancelled?'zrušeno':'čeká'}),
+      el('span',{cls:'amt',text:kc(price(r.type,r.size)||0)})]));
+    var btns=[];
+    var tel=el('span',{cls:'tel',text:r.phone});btns.push(tel);
+    if(r.status==='active'&&r.day<=todayKey()){var v=el('button',{type:'button',cls:'linkbtn ok',text:'Vydat'});v.addEventListener('click',function(){openSheet(r.type,r.size,r)});btns.push(v)}
+    if(r.status==='active')btns.push(confirmBtn('Zrušit','Opravdu zrušit?',function(){setRez(r.id,{status:'cancelled'})}));
+    else btns.push(confirmBtn('Smazat','Opravdu smazat?',function(){delRez(r.id)}));
+    f.appendChild(el('div',{cls:'row actions'},[el('span'),el('span',{cls:'act-btns'},btns)]));return f}
+  function needLine(list){return TYPES.map(function(t){var parts=SIZES.map(function(s){var n=list.filter(function(r){return r.type===t.k&&r.size===s.k}).length;return n?n+'× '+s.n:null}).filter(Boolean);
+    return parts.length?(t.k==='smrk'?'Smrk: ':'Jedle: ')+parts.join(', '):null}).filter(Boolean).join(' · ')}
+  function renderRez(){var box=$('rez-days');box.textContent='';var td=todayKey();
+    var act=rez.filter(function(r){return r.status!=='cancelled'||r.day>=td});
+    var upcoming={};act.forEach(function(r){if(r.day>=td){(upcoming[r.day]=upcoming[r.day]||[]).push(r)}});
+    var keys=Object.keys(upcoming).sort();
+    var todayActive=(upcoming[td]||[]).filter(function(r){return r.status==='active'}).length;
+    var badge=$('rez-badge');badge.textContent=todayActive?String(todayActive):'';badge.hidden=!todayActive;
+    // plán
+    var plan=$('rez-plan');plan.textContent='';
+    plan.appendChild(el('thead',null,[el('tr',null,['Den','Lidí','Smrků','Jedlí'].map(function(h){return el('th',{text:h})}))]));
+    var pb=el('tbody');keys.forEach(function(k){var l=upcoming[k].filter(function(r){return r.status==='active'});if(!l.length)return;
+      pb.appendChild(el('tr',null,[dayLabel(k)+(k===td?' (dnes)':''),String(l.length),String(l.filter(function(r){return r.type==='smrk'}).length),String(l.filter(function(r){return r.type==='jedle'}).length)].map(function(v){return el('td',{text:v})})))});
+    if(!pb.children.length)pb.appendChild(el('tr',null,[el('td',{colspan:'4',text:'Zatím žádné rezervace.'})]));
+    plan.appendChild(pb);
+    keys.forEach(function(k){var l=upcoming[k];var a=l.filter(function(r){return r.status==='active'});
+      var card=el('div',{cls:'card'},[el('div',{cls:'type-head'},[el('h2',{text:dayLabel(k)+(k===td?' · dnes':'')}),el('span',{cls:'left',text:a.length+' čeká'})])]);
+      var need=needLine(a);if(need)card.appendChild(el('p',{cls:'note',text:'Připravit: '+need}));
+      var list=el('div',{cls:'list'});l.forEach(function(r){list.appendChild(rezRow(r))});card.appendChild(list);box.appendChild(card)});
+    var old=rez.filter(function(r){return r.day<td&&r.status==='active'});
+    $('rez-old').hidden=!old.length;$('rez-old-count').textContent=String(old.length);
+    var ol=$('rez-old-list');ol.textContent='';old.forEach(function(r){ol.appendChild(rezRow(r))});}
+  async function setRez(id,patch){if(!sb)return;var r=await sb.from('stromky_reservations').update(patch).eq('id',id);if(r.error)toast('Změna se neuložila.',true);scheduleLoad()}
+  async function delRez(id){if(!sb)return;var r=await sb.from('stromky_reservations').delete().eq('id',id);toast(r.error?'Rezervaci se nepodařilo smazat.':'Rezervace smazána',true);scheduleLoad()}
+  function publicUrl(){return location.origin+location.pathname.replace(/[^\/]*$/,'')+'rezervace.html'}
 
   /* ---------- data ---------- */
   function mapSale(x){return {id:x.id,type:x.tree_type,size:x.size,price:Number(x.price)||0,pay:PAY[x.pay]?x.pay:'cash',at:x.sold_at,day:String(x.sale_day||''),by:x.seller||'',void:!!x.is_void,receipt:x.receipt_no||null,receiptAt:x.receipt_at||null}}
@@ -156,16 +197,18 @@
       sb.from('stromky_config').select('prices,buy,stock,account,commission,issuer').eq('id','main').maybeSingle(),
       sb.from('stromky_sales').select('*').order('sold_at',{ascending:false}).limit(5000),
       sb.from('stromky_odbery').select('*').order('odber_day',{ascending:false}).order('created_at',{ascending:false}).limit(500),
-      sb.from('stromky_days').select('*').limit(200)]);
-    if(res.some(function(r){return r.error})){setOffline(true);return}
+      sb.from('stromky_days').select('*').limit(200),
+      sb.from('stromky_reservations').select('*').order('pickup_day',{ascending:true}).order('created_at',{ascending:true}).limit(2000)]);
+    if(res.some(function(r){return r.error})){var e=res.find(function(r){return r.error}).error;if(e&&(e.code==='PGRST301'||/JWT|permission/i.test(e.message||''))){window.__showLogin();return}setOffline(true);return}
     setOffline(false);cfg=res[0].data;sales=(res[1].data||[]).map(mapSale);
     odbery=(res[2].data||[]).map(function(o){return {id:o.id,day:String(o.odber_day),smrk:Number(o.smrk)||0,jedle:Number(o.jedle)||0,note:o.note||'',void:!!o.is_void}});
     days={};(res[3].data||[]).forEach(function(d){days[String(d.day)]=d});
+    rez=(res[4].data||[]).map(function(r){return {id:r.id,code:r.code,type:r.tree_type,size:r.size,day:String(r.pickup_day),name:r.name,phone:r.phone,note:r.note||'',status:r.status}});
     renderAll();}
   var reloadTimer=null;function scheduleLoad(){clearTimeout(reloadTimer);reloadTimer=setTimeout(load,250)}
 
   /* ---------- prodej ---------- */
-  function openSheet(t,s){pending={type:t,size:s,full:price(t,s)};$('sheet-title').textContent=tName(t)+' · '+sName(s);$('sheet-price').value=pending.full;
+  function openSheet(t,s,res){pending={type:t,size:s,full:price(t,s),res:res||null};$('sheet-title').textContent=(res?'Rezervace '+res.code+' · ':'')+tName(t)+' · '+sName(s);$('sheet-price').value=pending.full;
     $('sheet-main').hidden=false;$('sheet-qr').hidden=true;$('sheet-cancel').hidden=false;
     $('sheet').hidden=false;$('sheet-back').hidden=false;$('pay-cash').focus();}
   function closeSheet(){pending=null;$('sheet').hidden=true;$('sheet-back').hidden=true;$('qr-img').textContent='';}
@@ -179,11 +222,12 @@
     else{box.appendChild(el('p',{cls:'note',text:'QR kód se nepodařilo načíst. Zkontroluj internet.'}))}
     $('qr-amt').textContent=kc(p);
     $('qr-info').textContent='Zákazník naskenuje kód v bankovní aplikaci. Až uvidíš potvrzení platby, ťukni na Zaplaceno.';}
-  async function sell(pay){if(!pending||!sb||busy)return;busy=true;var p=sheetPrice();var now=new Date();
+  async function sell(pay){if(!pending||!sb||busy)return;busy=true;var p=sheetPrice();var now=new Date();var resv=pending.res;
     var row={tree_type:pending.type,size:pending.size,price:p,pay:pay,sold_at:now.toISOString(),sale_day:dayKey(now),seller:seller().slice(0,40)};
     var label=tName(row.tree_type).split(' ')[0]+' '+sName(row.size)+' · '+kc(p)+' · '+PAY[pay];closeSheet();
     var r=await sb.from('stromky_sales').insert(row).select('id').single();busy=false;
     if(r.error){toast('Prodej se neuložil. Zkontroluj internet a zkus to znovu.',true);return}
+    if(resv){await sb.from('stromky_reservations').update({status:'done',sale_id:r.data.id}).eq('id',resv.id)}
     lastAdded=r.data.id;toast(label);scheduleLoad();}
   function toast(text,noUndo){$('toast-text').textContent=text;$('toast-undo').hidden=!!noUndo;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){$('toast').hidden=true;lastAdded=null},6000)}
   async function undo(){$('toast').hidden=true;if(!lastAdded)return;var id=lastAdded;lastAdded=null;await deleteSale(id)}
@@ -279,12 +323,22 @@
   setInterval(renderHeader,60000);
 
   if(!window.supabase){setOffline(true);return}
-  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  load();
-  var ch=sb.channel('stromky');
-  ['stromky_sales','stromky_config','stromky_odbery','stromky_days'].forEach(function(t){ch=ch.on('postgres_changes',{event:'*',schema:'public',table:t},scheduleLoad)});
-  ch.subscribe();
-  setInterval(load,30000);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
-  window.addEventListener('online',load);
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,storageKey:'stromky-pokladna-auth'}});
+  function showLogin(){$('login').hidden=false;$('app').hidden=true;setTimeout(function(){$('login-pass').focus()},50)}
+  function start(){$('login').hidden=true;$('app').hidden=false;load();if(started)return;started=true;
+    var ch=sb.channel('stromky');
+    ['stromky_sales','stromky_config','stromky_odbery','stromky_days','stromky_reservations'].forEach(function(t){ch=ch.on('postgres_changes',{event:'*',schema:'public',table:t},scheduleLoad)});
+    ch.subscribe();
+    setInterval(load,30000);
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
+    window.addEventListener('online',load);}
+  window.__showLogin=showLogin;
+  $('login-form').addEventListener('submit',async function(e){e.preventDefault();var btn=$('login-btn');btn.disabled=true;$('login-err').hidden=true;
+    var r=await sb.auth.signInWithPassword({email:'pokladna@stromky-pokladna.cz',password:$('login-pass').value});btn.disabled=false;
+    if(r.error){$('login-err').textContent=/invalid/i.test(r.error.message||'')?'Špatné heslo.':'Přihlášení se nepovedlo. Zkontroluj internet.';$('login-err').hidden=false;return}
+    $('login-pass').value='';start()});
+  $('logout').addEventListener('click',async function(){await sb.auth.signOut();showLogin()});
+  $('copy-public').addEventListener('click',async function(){try{await navigator.clipboard.writeText(publicUrl());toast('Odkaz zkopírován',true)}catch(e){toast('Kopírování se nepovedlo.',true)}});
+  $('public-url').textContent=publicUrl();
+  sb.auth.getSession().then(function(r){if(r.data&&r.data.session)start();else showLogin()});
 })();

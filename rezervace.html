@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rezervace vánočního stromku · Svoboda nad Úpou</title>
+<meta name="description" content="Zarezervujte si vánoční stromek od místního pěstitele. Areál Castle, Úpská 531, Svoboda nad Úpou. Prodej 30. 11. – 23. 12., denně 10–17 h.">
+<meta name="theme-color" content="#1A3527">
+<meta property="og:title" content="Rezervace vánočního stromku">
+<meta property="og:description" content="Smrky a jedle od místního pěstitele. Vyberte stromek a den, kdy si pro něj přijdete.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column; dark pine hero like the flyer, then a light form in four short steps */
+:root{
+  --pine:#1A3527; --pine-2:#24483A; --ivory:#FBF8F1; --paper:#FFFFFF; --fg:#1B2A21; --muted:#56655B; --line:#DDE3DC;
+  --gold:#C99A3E; --gold-soft:#F7ECD6; --red:#A61E22; --red-soft:#FBE7E6;
+  --f-display:"Fraunces",Georgia,serif; --f-body:"Inter",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ivory);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.hero{background:var(--pine);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 36px) max(20px,env(safe-area-inset-right,0px)) 40px max(20px,env(safe-area-inset-left,0px));position:relative;overflow:hidden}
+.hero-in{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:12px;position:relative}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E7C16F}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,9vw,52px);line-height:1.02;margin:0;text-wrap:balance}
+.hero p{margin:0;color:#D9E3DA;max-width:34em}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14.5px;color:#fff;margin-top:6px}
+.facts span{display:flex;gap:6px;align-items:center}
+.flake{position:absolute;right:-30px;top:10px;width:180px;height:180px;opacity:.16}
+main{max-width:620px;margin:0 auto;padding:28px max(20px,env(safe-area-inset-right,0px)) calc(48px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:30px}
+.step{display:flex;flex-direction:column;gap:12px}
+.step h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;display:flex;gap:10px;align-items:baseline}
+.step h2 .n{font-family:var(--f-body);font-size:13px;font-weight:700;color:var(--gold);letter-spacing:.06em}
+.types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.type{appearance:none;font:inherit;color:inherit;text-align:left;background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:0;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+.type[aria-pressed="true"]{border-color:var(--pine);box-shadow:0 0 0 3px rgba(26,53,39,.15)}
+.type .ph{aspect-ratio:4/5;max-width:100%;background:linear-gradient(180deg,#E9EFE8,#D6E1D7);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.type .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.type .ph svg{width:72%;height:auto}
+.type .tx{padding:12px 14px 14px;display:flex;flex-direction:column;gap:2px}
+.type .nm{font-weight:700;font-size:16px}
+.type .from{color:var(--muted);font-size:14px}
+.type .left{font-size:13px;font-weight:600;color:var(--pine)}
+.type .left.low{color:var(--red)}
+.type:disabled{opacity:.5;cursor:default}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.thumbs img{height:84px;width:auto;border-radius:10px;flex:none}
+.sizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.size{appearance:none;font:inherit;color:inherit;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:64px}
+.size[aria-pressed="true"]{border-color:var(--pine);background:#EEF4EF}
+.size .h{font-weight:600}
+.size .p{font-family:var(--f-display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.size .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity}
+.day{appearance:none;font:inherit;color:inherit;flex:none;scroll-snap-align:start;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:10px 0;width:64px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0}
+.day .wd{font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.day .d{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.1}
+.day .m{font-size:12px;color:var(--muted)}
+.day[aria-pressed="true"]{border-color:var(--pine);background:var(--pine);color:#fff}
+.day[aria-pressed="true"] .wd,.day[aria-pressed="true"] .m{color:#D9E3DA}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:14px;font-weight:600}
+input,textarea{font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--fg);width:100%;min-width:0}
+textarea{min-height:76px;resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.summary{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.summary .row{display:flex;justify-content:space-between;gap:12px}
+.summary .row span:first-child{color:var(--muted)}
+.summary .row b{text-align:right}
+.btn{appearance:none;border:0;border-radius:14px;padding:16px 20px;font:inherit;font-weight:700;font-size:17px;cursor:pointer;min-height:56px;background:var(--pine);color:#fff;width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.small{font-size:13.5px;color:var(--muted);margin:0}
+.err{background:var(--red-soft);color:var(--red);border-radius:12px;padding:12px 14px;font-weight:600}
+.done{background:var(--paper);border:2px solid var(--pine);border-radius:18px;padding:24px 20px;display:flex;flex-direction:column;gap:14px;text-align:center;align-items:center}
+.done h2{font-family:var(--f-display);font-size:26px;margin:0}
+.code{font-family:var(--f-display);font-weight:700;font-size:48px;letter-spacing:.12em;color:var(--pine);background:var(--gold-soft);border-radius:14px;padding:6px 18px}
+.done .summary{width:100%;text-align:left}
+footer{max-width:620px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:13.5px}
+@media (prefers-reduced-motion:no-preference){.done{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.97);opacity:.5}}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <svg class="flake" viewBox="-30 -30 60 60" aria-hidden="true" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M0 -26V26M-22.5 -13L22.5 13M-22.5 13L22.5 -13"/><path d="M-6 -20L0 -14L6 -20M-6 20L0 14L6 20M-20 -4L-14 -8L-19 -15M20 4L14 8L19 15M20 -4L14 -8L19 -15M-20 4L-14 8L-19 15"/></svg>
+  <div class="hero-in">
+    <div class="eyebrow">Svoboda nad Úpou · místní stromky</div>
+    <h1>Rezervace vánočního stromku</h1>
+    <p>Vyberte si druh, výšku a den, kdy si pro stromek přijdete. My ho pro vás podržíme. Platíte až na místě.</p>
+    <div class="facts">
+      <span>Areál Castle, Úpská 531</span>
+      <span>30. 11. – 23. 12.</span>
+      <span>denně 10–17 h</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="load-err" class="err" hidden>Nabídku se nepodařilo načíst. Zkontrolujte připojení a obnovte stránku, nebo zavolejte na 705 919 580.</div>
+
+  <form id="form" novalidate>
+    <div class="step">
+      <h2><span class="n">1</span>Jaký stromek?</h2>
+      <div class="types" id="types">
+        <button type="button" class="type" data-type="smrk" aria-pressed="false">
+          <div class="ph" id="ph-smrk"></div>
+          <div class="tx"><span class="nm">Smrk stříbrný</span><span class="from" id="from-smrk"></span><span class="left" id="left-smrk"></span></div>
+        </button>
+        <button type="button" class="type" data-type="jedle" aria-pressed="false">
+          <div class="ph" id="ph-jedle"></div>
+          <div class="tx"><span class="nm">Jedle kavkazská</span><span class="from" id="from-jedle"></span><span class="left" id="left-jedle"></span></div>
+        </button>
+      </div>
+      <div class="thumbs" id="thumbs" hidden></div>
+      <p class="small" id="type-note">Smrk krásně voní, jedle déle vydrží a nepíchá.</p>
+    </div>
+
+    <div class="step" id="step-size" hidden>
+      <h2><span class="n">2</span>Jak vysoký?</h2>
+      <div class="sizes" id="sizes"></div>
+    </div>
+
+    <div class="step" id="step-day" hidden>
+      <h2><span class="n">3</span>Kdy si pro něj přijdete?</h2>
+      <div class="days" id="days" role="group" aria-label="Den vyzvednutí"></div>
+      <p class="small">Rezervace platí jen ve vybraný den od 10 do 17 hodin.</p>
+    </div>
+
+    <div class="step" id="step-contact" hidden>
+      <h2><span class="n">4</span>Na koho rezervujeme?</h2>
+      <div class="field"><label for="name">Jméno a příjmení</label><input id="name" autocomplete="name" maxlength="80" required></div>
+      <div class="field"><label for="phone">Telefon</label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="777 123 456" required></div>
+      <div class="field"><label for="note">Poznámka <span class="small">(nepovinné)</span></label><textarea id="note" maxlength="300" placeholder="např. hustší, rovná špička…"></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="web">Web</label><input id="web" tabindex="-1" autocomplete="off"></div>
+
+      <div class="summary" id="summary"></div>
+      <div id="err" class="err" hidden></div>
+      <button class="btn" type="submit" id="submit" disabled>Rezervovat stromek</button>
+      <p class="small">Telefon použijeme jen kvůli rezervaci a po Vánocích ho smažeme. Bez zálohy, platíte při vyzvednutí hotově, kartou nebo QR kódem.</p>
+    </div>
+  </form>
+
+  <section class="done" id="done" hidden aria-live="polite">
+    <h2>Máte zarezervováno</h2>
+    <p class="small">Kód rezervace</p>
+    <div class="code" id="done-code"></div>
+    <div class="summary" id="done-summary"></div>
+    <p class="small">Udělejte si snímek obrazovky. Na místě stačí říct jméno nebo kód. Když nebudete moct přijít, zavolejte prosím na 705 919 580.</p>
+    <button class="btn" type="button" id="again">Rezervovat další stromek</button>
+  </section>
+</main>
+
+<footer>Prodej vánočních stromků · Areál Castle, Úpská 531, Svoboda nad Úpou · tel. 705 919 580</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SIZES=[{k:'s',n:'do 150 cm'},{k:'m',n:'150–200 cm',tag:'Nejoblíbenější'},{k:'l',n:'200–230 cm'},{k:'xl',n:'nad 230 cm'}];
+  var TYPES={smrk:'Smrk stříbrný',jedle:'Jedle kavkazská'};
+  /* Fotky: soubory ve složce foto/, první je hlavní. Prázdný seznam = ilustrace. */
+  var PHOTOS={smrk:[],jedle:[]};
+  var $=function(id){return document.getElementById(id)};
+  var state={type:null,size:null,day:null},offer=null,sb=null,busy=false;
+  function kc(n){return (Math.round(n)||0).toLocaleString('cs-CZ').replace(/ /g,' ')+' Kč'}
+  function el(tag,attrs,kids){var e=document.createElement(tag);if(attrs)for(var a in attrs){if(a==='text')e.textContent=attrs[a];else if(a==='cls')e.className=attrs[a];else e.setAttribute(a,attrs[a])}(kids||[]).forEach(function(k){if(k!=null)e.appendChild(typeof k==='string'?document.createTextNode(k):k)});return e}
+  function parseDay(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function dayLong(s){return parseDay(s).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'numeric'})}
+  var treeSvg='<svg viewBox="0 0 100 120" aria-hidden="true"><path d="M50 8 L22 48 H36 L14 80 H86 L64 48 H78 Z" fill="#2F5A42"/><rect x="45" y="80" width="10" height="22" rx="2" fill="#7A5A3A"/><circle cx="40" cy="62" r="3.2" fill="#C99A3E"/><circle cx="60" cy="54" r="3.2" fill="#A61E22"/><circle cx="54" cy="72" r="3.2" fill="#C99A3E"/></svg>';
+
+  function renderPhotos(){['smrk','jedle'].forEach(function(t){var box=$('ph-'+t);box.textContent='';
+    if(PHOTOS[t].length){box.appendChild(el('img',{src:PHOTOS[t][0],alt:TYPES[t],loading:'lazy'}))}else{box.innerHTML=treeSvg}});
+    var th=$('thumbs');th.textContent='';var list=state.type?PHOTOS[state.type].slice(1):[];
+    list.forEach(function(src){th.appendChild(el('img',{src:src,alt:TYPES[state.type]+' – ukázka',loading:'lazy'}))});th.hidden=!list.length;}
+
+  function renderTypes(){['smrk','jedle'].forEach(function(t){var pr=offer&&offer.prices&&offer.prices[t]||{};var min=Math.min.apply(null,SIZES.map(function(s){return pr[s.k]||Infinity}));
+    $('from-'+t).textContent=isFinite(min)?'od '+kc(min):'';var left=offer&&offer.left?offer.left[t]:null;var l=$('left-'+t);
+    var btn=document.querySelector('[data-type="'+t+'"]');btn.setAttribute('aria-pressed',state.type===t?'true':'false');
+    if(left===0){l.textContent='Vyprodáno';l.className='left low';btn.disabled=true}
+    else if(left!=null&&left<=10){l.textContent='Zbývá posledních '+left+' ks';l.className='left low';btn.disabled=false}
+    else{l.textContent='';btn.disabled=false}})}
+
+  function renderSizes(){var box=$('sizes');box.textContent='';if(!state.type)return;var pr=offer.prices[state.type]||{};
+    SIZES.forEach(function(s){if(pr[s.k]==null)return;var b=el('button',{type:'button',cls:'size','aria-pressed':state.size===s.k?'true':'false'},[s.tag?el('span',{cls:'tag',text:s.tag}):null,el('span',{cls:'h',text:s.n}),el('span',{cls:'p',text:kc(pr[s.k])})]);
+      b.addEventListener('click',function(){state.size=s.k;renderAll();$('step-day').scrollIntoView({behavior:'smooth',block:'nearest'})});box.appendChild(b)})}
+
+  function renderDays(){var box=$('days');if(box.children.length)return;var d=parseDay(offer.first_day),end=parseDay(offer.last_day);
+    while(d<=end){var k=iso(d);(function(k,d){var b=el('button',{type:'button',cls:'day','aria-pressed':'false','data-day':k,'aria-label':dayLong(k)},[
+      el('span',{cls:'wd',text:d.toLocaleDateString('cs-CZ',{weekday:'short'})}),el('span',{cls:'d',text:String(d.getDate())}),el('span',{cls:'m',text:d.toLocaleDateString('cs-CZ',{month:'short'})})]);
+      b.addEventListener('click',function(){state.day=k;renderAll();$('step-contact').scrollIntoView({behavior:'smooth',block:'start'})});box.appendChild(b)})(k,new Date(d));d.setDate(d.getDate()+1)}}
+
+  function summaryRows(box,code){box.textContent='';var pr=offer.prices[state.type]||{};
+    [['Stromek',TYPES[state.type]],['Výška',(SIZES.find(function(s){return s.k===state.size})||{}).n],['Cena',kc(pr[state.size])],['Vyzvednutí',dayLong(state.day)+', 10–17 h'],['Kde','Areál Castle, Úpská 531, Svoboda nad Úpou']]
+      .forEach(function(r){box.appendChild(el('div',{cls:'row'},[el('span',{text:r[0]}),el('b',{text:r[1]||''})]))})}
+
+  function valid(){var ph=$('phone').value.replace(/[^\d+]/g,'');return state.type&&state.size&&state.day&&$('name').value.trim().length>=2&&/^(\+\d{9,15}|\d{9})$/.test(ph)}
+  function renderAll(){renderTypes();renderPhotos();renderSizes();
+    $('step-size').hidden=!state.type;$('step-day').hidden=!state.size;$('step-contact').hidden=!state.day;
+    document.querySelectorAll('.day').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.day===state.day?'true':'false')});
+    if(state.type&&state.size&&state.day)summaryRows($('summary'));$('submit').disabled=!valid()||busy}
+
+  var ERR={vyprodano:'Tento druh je bohužel už vyprodaný. Zkuste prosím druhý.',neplatny_den:'Vyberte prosím den mezi 30. 11. a 23. 12.',neplatny_telefon:'Zkontrolujte prosím telefonní číslo.',chybi_jmeno:'Vyplňte prosím jméno.',moc_rezervaci:'Na toto číslo už máte 3 rezervace. Pro víc stromků nám prosím zavolejte.'};
+  async function submit(e){e.preventDefault();if(!valid()||busy||!sb)return;if($('web').value){return}
+    busy=true;$('submit').disabled=true;$('submit').textContent='Odesílám…';$('err').hidden=true;
+    var r=await sb.rpc('stromky_reserve',{p_type:state.type,p_size:state.size,p_day:state.day,p_name:$('name').value.trim(),p_phone:$('phone').value.trim(),p_note:$('note').value.trim()});
+    busy=false;$('submit').textContent='Rezervovat stromek';
+    if(r.error){var key=Object.keys(ERR).find(function(k){return (r.error.message||'').indexOf(k)>=0});$('err').textContent=ERR[key]||'Rezervaci se nepodařilo uložit. Zkuste to prosím znovu, nebo zavolejte na 705 919 580.';$('err').hidden=false;renderAll();loadOffer();return}
+    $('done-code').textContent=r.data;summaryRows($('done-summary'));$('form').hidden=true;$('done').hidden=false;window.scrollTo({top:$('done').offsetTop-20,behavior:'smooth'});loadOffer()}
+
+  async function loadOffer(){var r=await sb.rpc('stromky_public_offer');if(r.error||!r.data){$('load-err').hidden=false;return}
+    $('load-err').hidden=true;offer=r.data;renderDays();renderAll()}
+
+  document.querySelectorAll('[data-type]').forEach(function(b){b.addEventListener('click',function(){if(!offer)return;state.type=b.dataset.type;renderAll();$('step-size').scrollIntoView({behavior:'smooth',block:'nearest'})})});
+  ['name','phone','note'].forEach(function(id){$(id).addEventListener('input',renderAll)});
+  $('form').addEventListener('submit',submit);
+  $('again').addEventListener('click',function(){state={type:null,size:null,day:null};$('name').value='';$('phone').value='';$('note').value='';$('form').hidden=false;$('done').hidden=true;renderAll();window.scrollTo({top:0,behavior:'smooth'})});
+
+  renderPhotos();
+  if(!window.supabase){$('load-err').hidden=false;return}
+  sb=window.supabase.createClient('https://ajbxynzxdyqbfjhpdyot.supabase.co','sb_publishable_1cEe3dARe90wosDXiZmbLw_l1j1OI8H',{auth:{persistSession:false}});
+  loadOffer();
+})();
+</script>
+</body>
+</html>

@@ -70,14 +70,11 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 20p
   var id=new URLSearchParams(location.search).get('id');
   if(!id||!/^[0-9a-f-]{36}$/i.test(id)){fail('Doklad nebyl nalezen. Zkontroluj odkaz.');return}
   if(!window.supabase){fail('Doklad se nepodařilo načíst. Zkontroluj připojení k internetu.');return}
-  var sb=window.supabase.createClient('https://ajbxynzxdyqbfjhpdyot.supabase.co','sb_publishable_1cEe3dARe90wosDXiZmbLw_l1j1OI8H');
-  var r=await Promise.all([
-    sb.from('stromky_sales').select('tree_type,size,price,pay,sold_at,receipt_no,is_void').eq('id',id).maybeSingle(),
-    sb.from('stromky_config').select('issuer').eq('id','main').maybeSingle()]);
-  if(r[0].error||r[1].error){fail('Doklad se nepodařilo načíst. Zkus to prosím znovu.');return}
-  var s=r[0].data;if(!s||!s.receipt_no){fail('Doklad nebyl nalezen.');return}
-  if(s.is_void){fail('Tento prodej byl stornován.');return}
-  var is=(r[1].data&&r[1].data.issuer)||{};var d=new Date(s.sold_at);
+  var sb=window.supabase.createClient('https://ajbxynzxdyqbfjhpdyot.supabase.co','sb_publishable_1cEe3dARe90wosDXiZmbLw_l1j1OI8H',{auth:{persistSession:false}});
+  var r=await sb.rpc('stromky_receipt',{p_sale:id});
+  if(r.error){fail('Doklad se nepodařilo načíst. Zkus to prosím znovu.');return}
+  var s=r.data;if(!s||!s.receipt_no){fail('Doklad nebyl nalezen.');return}
+  var is=s.issuer||{};var d=new Date(s.sold_at);
   var no=d.getFullYear()+'-'+String(s.receipt_no).padStart(4,'0');
   document.title='Prodejní doklad č. '+no;
   $('no').textContent='č. '+no;
